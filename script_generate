@@ -1,0 +1,71 @@
+#!/bin/bash
+
+# Script to Create a series of random numbers and strings of characters \
+# and write them to a file, no more than 15 characters for each line.
+# Stop writing to file when file size reachs 1MiB
+
+
+# File name that will be created
+FILE='random_strings'
+
+# Default MiB size in bytes
+MiB=1048576
+
+# File size limit
+LIMIT=$((1*$MiB))
+
+
+# If file already exists
+if [ -e $FILE ]; then
+	echo File already exists, Do you wish to create another one?
+	echo yes to create a new file, no to user the same file: 
+	read ANSWER
+	case "$ANSWER" in
+		"yes" | "y" | "Y" | "YES") echo Enter new file name:;
+			read FILE;
+			touch $FILE;;
+		"no" | "n" | "N" | "NO") echo Using same file;;
+		* ) echo INVALID Answer.;
+			exit 2;;
+	esac	
+fi
+
+touch $FILE
+
+SIZE=$(wc -c <"$FILE")
+echo Generating random strings...
+while [ $SIZE -le $LIMIT ];
+do
+	# Get the first 10 lines of /dev/urandom, convert binary to ASCCI with\
+	# tr -dc, get only Latin Alphabet, then get only the first 15 bytes \
+	# of the result, another way could use cut -c1-15
+	echo $(head /dev/urandom | tr -dc A-Za-z0-9 | head -c15) >> $FILE 
+	let SIZE=$(wc -c <"$FILE")
+	if [ $(($SIZE%1000)) -eq 0 ] ; then
+		printf '.'
+	fi
+done
+
+echo Done.
+
+# Sorting
+
+NEW_FILE=removed_start_with_a
+
+# sort -n will sort the file comparing the string numerical value
+# If use sort withou argument will sort by default as dictionary order, \
+# considering only blank space and alphanumeric values
+sort -n $FILE -o $FILE
+CNTLINESO=$(wc -l < $FILE)
+
+echo Total lines original: $CNTLINESO
+
+# Remove lines that start with "a" case insensitive
+grep ^[^aA] $FILE > $NEW_FILE
+
+# New File Lines
+CNTLINESN=$(wc -l < $NEW_FILE)
+echo Total lines new file: $CNTLINESN
+
+# Print difference to get the total of lines removed
+echo Number of lines removed: $(($CNTLINESO-$CNTLINESN)) 
